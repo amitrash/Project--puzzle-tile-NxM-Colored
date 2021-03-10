@@ -16,124 +16,74 @@ import java.util.Stack;
 
 import javax.print.attribute.IntegerSyntax;
 public class Puzzel_Tile{
-	
 	public static int num2=1;
-	public static void DFID(Matrix matrix, boolean WithOpen) {
-		Hashtable<Matrix, Matrix> openList = new Hashtable<Matrix, Matrix>();
-		openList.put(matrix, matrix);
-		if(WithOpen) {//if in the input is write with open print the open list(this is just for level 1)
-			System.out.println(openList.values().toString());
+	
+	//based on Manhattan distance
+	//estimates the cost between given state to goal state, sums the distance from each block that not in his place to his right place while taking the block color to the calculation. 
+	public static int h(Matrix matrix) {
+		int d = 0;
+		for (int i = 0; i < matrix.matrix.length; i++) {
+			for (int j = 0; j < matrix.matrix[0].length; j++) {
+				if(matrix.matrix[i][j] != matrix.ans[i][j] && matrix.matrix[i][j] != -1 ) {//find block that isnt in place
+					int sumx = 0;
+					int sumy = 0;
+					for (int k = 0; k < matrix.matrix.length; k++) {
+						for (int k2 = 0; k2 < matrix.matrix[0].length; k2++) {
+							if(matrix.matrix[k][k2] == matrix.ans[i][j]) {
+								sumx = k+1;
+								sumy = k2+1;
+							}
+						}
+					}
+					int cost =1;
+					if(matrix.colors.get(matrix.matrix[i][j]).equals("Red")) {//if its red every move cost 30 
+						cost=30;
+					}
+					d += (Math.abs(sumx-(i+1)) + Math.abs(sumy-(j+1))) * cost;
+				}
+			}
 		}
-		int depth = 1;
-		while(depth!=Integer.MAX_VALUE) {
-			Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>();
-			openList = new Hashtable<Matrix, Matrix>();
-			String result = Limited_DFS(matrix, depth, h, WithOpen,openList);
-			if(WithOpen) {//if in the input is write with open print the open list
-				System.out.println(openList.values().toString());
-			}
-			if(result != null && result != "cutoff" && result != "fail") {//this is the goel
-				return ;
-			}
-			else if(result == "fail") {//no path 
-				return;
-			}
-			depth++;
-		}
-		return;
+		return d;
 	}
-	public static String Limited_DFS(Matrix matrix, int limit, Hashtable<Integer, Matrix> h, boolean WithOpen, Hashtable<Matrix, Matrix> openList) {
-		if(matrix.victoryOrNot()) {	//chack if it is the goel  and return the path
-			matrix.findf(matrix).updatef(num2, matrix.cost, matrix.path().substring(1));
-			return matrix.path().substring(1);
-		}else if(limit == 0) {// if limit is 0 return cutoff and add him to the open list
-			openList.put(matrix, matrix);
-			return "cutoff";
-		}else {
-			h.put(limit, matrix);
-			boolean isCutoff = false;
-			String[] steps= {"L","U","R","D"};
+	
+	//BFS:
+	//Passes On an entire floor until reach the solution
+	//Time complexity:O(branch factor^Depth)
+	//Space complexity:O(branch factor^Depth)
+	public static void bfs(Matrix matrix, boolean WithOpen) {
+		Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>(); 
+		Hashtable<Integer, Matrix> openList = new Hashtable<Integer, Matrix>(); 
+		Queue<Matrix> queue = new LinkedList<Matrix>(); 
+		queue.add(matrix);//add the first metix to the queue
+		int i=0,o=0,out=0;//counter for the hash table
+		openList.put(o++, matrix);
+		int num=1;//number of nodes created
+		while (queue.size() != 0){ 
+			if(WithOpen) {
+			System.out.println(openList.toString());
+			}
+			Matrix m=queue.poll();
+			openList.remove(out++);			
+			h.put(i++, m);
+			String[] steps= {"L","U","R","D"};////each child option
 			for (int j = 0; j <steps.length; j++) {
-				Matrix mat=step(matrix,steps[j]);//make mat as matrix with the chosen move.
-					if(mat!=null && !h.contains(mat)) {//if mat isnt in h
-						num2++;//count nodes
-						String result = Limited_DFS(mat, limit - 1, h, WithOpen,openList);//call mith limit -1
-						if(result == "cutoff") {//if its cutoff need to continue
-							isCutoff = true;
-						}else if(result != "fail") {//not the way
-							return result;
-						}
-					}
-			}
-			h.remove(limit);
-			if(isCutoff == true) {//if its cutoff need to continue
-				return "cutoff";
-			}else {
-				return "fail";//not the way
-			}
-		}
-		}
-	public static void IDA(Matrix matrix, boolean WithOpen) {
-		Hashtable<Matrix, String> h = new Hashtable<Matrix, String>();
-		Stack<Matrix> stack = new Stack<Matrix>();
-		int t = h(matrix);//t=FutureCost of the matrix that it start with.
-		while(t != Integer.MAX_VALUE) {
-			int num = 1;
-			int minFutureCost = Integer.MAX_VALUE;
-			stack.add(matrix);
-			h.put(matrix, "");
-			while(stack.size()!=0) {
-				if(WithOpen) {//if in the input is write with open print the open list
-					System.out.println(stack.toString());
+				Matrix mat=step(m,steps[j]);
+				if(mat!=null) {
+					num++;
 				}
-				Matrix m = stack.pop();
-				if(h.get(m).equals("out")) {//if the matrix that m is marked as "out" it remove it from the hash table 
-					h.remove(m);
-				}
-				else {//if its not marked as "out" we marked the matrix as "out"
-					h.remove(m);
-					h.put(m, "out");
-					stack.add(m);
-					String[] steps= {"L","U","R","D"};
-					for (int j = 0; j <steps.length; j++) {
-						Matrix mat=step(m,steps[j]);//make mat as matrix with the chosen move.
-						if(mat!= null) {//if it build net matrix mat in 1 of the 4 if above
-							num++;
-							int matFutureCost=findFutureCost(mat);
-							if(matFutureCost > t) {//if the future cost of the matrix is bigger than t
-								minFutureCost = Math.min(minFutureCost, matFutureCost);//if it is smaller than minFutureCost it change minFutureCost
-								continue;
-							}
-							if(h.contains(mat)){
-								if(h.get(mat).equals("out")) {
-									continue;
-								}
-								else {
-									//if the hash tabel contains mat like this that isnt marked as "out"
-									//it find it and if the future cost is bigger it will remove it from the hash table and the stack.
-									for (Matrix key : h.keySet()) {
-										if(key.equals(mat) && findFutureCost(key) > matFutureCost) {								
-											stack.remove(key);
-											h.remove(key);
-										}else {
-											continue;
-										}
-									}
-								}
-							}
-							if(mat.victoryOrNot()) {//chack if it get the anser matrix
-								mat.findf(mat).updatef(num, mat.cost, mat.path().substring(1));
-								return;	
-							}
-							stack.add(mat);
-							h.put(mat, "");
-						}
-						}
+				if(mat!=null && !queue.contains(mat) && !h.contains(mat) && !openList.contains(mat)) {
+					if(mat.victoryOrNot()) {
+						mat.findf(mat).updatef(num, mat.cost, mat.path().substring(1));
+						return;
+					}else {
+						openList.put(o++, mat);
+						queue.add(mat);
 					}
 				}
-			t = minFutureCost;//update t
+			}
 		}
 	}
+	
 	//A*
 	//Combines greedy search and uniform cost search approaches (both based on BFS).
 	//greedy search (Pure Heuristic Search): "calculate" with the Heuristic Search the cost from Given state to goal.
@@ -188,70 +138,136 @@ public class Puzzel_Tile{
 		}
 		return "no path";
 	}
-	//BFS:
-	//Passes On an entire floor until reach the solution
-	//Time complexity:O(branch factor^Depth)
-	//Space complexity:O(branch factor^Depth)
-	public static void bfs(Matrix matrix, boolean WithOpen) {
-		Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>(); 
-		Hashtable<Integer, Matrix> openList = new Hashtable<Integer, Matrix>(); 
-		Queue<Matrix> queue = new LinkedList<Matrix>(); 
-		queue.add(matrix);//add the first metix to the queue
-		int i=0,o=0,out=0;//counter for the hash table
-		openList.put(o++, matrix);
-		int num=1;//number of nodes created
-		while (queue.size() != 0){ 
-			if(WithOpen) {
-			System.out.println(openList.toString());
-			}
-			Matrix m=queue.poll();
-			openList.remove(out++);			
-			h.put(i++, m);
-			String[] steps= {"L","U","R","D"};////each child option
+	
+	//Limited_DFS
+	//DFS(depth-first search): generates next a child of the deepest node that has not been completely expanded yet until the solution is found.
+	//based on DFS with limit depth.
+	//Time complexity:O(branch factor^Limit)
+	//Space complexity: O(branch factor*Limit) 
+	public static String Limited_DFS(Matrix matrix, int limit, Hashtable<Integer, Matrix> h, boolean WithOpen, Hashtable<Matrix, Matrix> openList) {
+		if(matrix.victoryOrNot()) {
+			matrix.findf(matrix).updatef(num2, matrix.cost, matrix.path().substring(1));
+			return matrix.path().substring(1);
+		}else if(limit == 0) {
+			openList.put(matrix, matrix);
+			return "cutoff";
+		}else {
+			h.put(limit, matrix);
+			boolean isCutoff = false;
+			String[] steps= {"L","U","R","D"};
 			for (int j = 0; j <steps.length; j++) {
-				Matrix mat=step(m,steps[j]);
-				if(mat!=null) {
-					num++;
-				}
-				if(mat!=null && !queue.contains(mat) && !h.contains(mat) && !openList.contains(mat)) {
-					if(mat.victoryOrNot()) {
-						mat.findf(mat).updatef(num, mat.cost, mat.path().substring(1));
-						return;
-					}else {
-						openList.put(o++, mat);
-						queue.add(mat);
-					}
-				}
-			}
-		}
-	}
-	//based on Manhattan distance
-	//estimates the cost between given state to goal state, sums the distance from each block that not in his place to his right place while taking the block color to the calculation. 
-	public static int h(Matrix matrix) {
-		int d = 0;
-		for (int i = 0; i < matrix.matrix.length; i++) {
-			for (int j = 0; j < matrix.matrix[0].length; j++) {
-				if(matrix.matrix[i][j] != matrix.ans[i][j] && matrix.matrix[i][j] != -1 ) {//find block that isnt in place
-					int sumx = 0;
-					int sumy = 0;
-					for (int k = 0; k < matrix.matrix.length; k++) {
-						for (int k2 = 0; k2 < matrix.matrix[0].length; k2++) {
-							if(matrix.matrix[k][k2] == matrix.ans[i][j]) {
-								sumx = k+1;
-								sumy = k2+1;
-							}
+				Matrix mat=step(matrix,steps[j]);
+					if(mat!=null && !h.contains(mat)) {
+						num2++;//count nodes
+						String result = Limited_DFS(mat, limit - 1, h, WithOpen,openList);//call mith limit -1
+						if(result == "cutoff") {
+							isCutoff = true;
+						}else if(result != "fail") {
+							return result;
 						}
 					}
-					int cost =1;
-					if(matrix.colors.get(matrix.matrix[i][j]).equals("Red")) {//if its red every move cost 30 
-						cost=30;
-					}
-					d += (Math.abs(sumx-(i+1)) + Math.abs(sumy-(j+1))) * cost;
-				}
+			}
+			h.remove(limit);
+			if(isCutoff == true) {
+				return "cutoff";
+			}else {
+				return "fail";
 			}
 		}
-		return d;
+		} 
+	//DFID
+	//Calls Limited_DFS for each depth until find the goal depth.
+	public static void DFID(Matrix matrix, boolean WithOpen) {
+		Hashtable<Matrix, Matrix> openList = new Hashtable<Matrix, Matrix>();
+		openList.put(matrix, matrix);
+		if(WithOpen) {
+			System.out.println(openList.values().toString());
+		}
+		int depth = 1;
+		while(depth!=Integer.MAX_VALUE) {
+			Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>();
+			openList = new Hashtable<Matrix, Matrix>();
+			String result = Limited_DFS(matrix, depth, h, WithOpen,openList);
+			if(WithOpen) {
+				System.out.println(openList.values().toString());
+			}
+			if(result != null && result != "cutoff" && result != "fail") {
+				return ;
+			}
+			else if(result == "fail") {
+				return;
+			}
+			depth++;
+		}
+		return;
 	}
+	
+	//IDA*
+	//based on DFS(depth-first search) algoritem
+	//evaluate state like A*.
+	//Space complexity: Linear 
+	public static void IDA(Matrix matrix, boolean WithOpen) {
+		Hashtable<Matrix, String> h = new Hashtable<Matrix, String>();
+		Stack<Matrix> stack = new Stack<Matrix>();
+		int t = h(matrix);//
+		while(t != Integer.MAX_VALUE) {
+			int num = 1;
+			int minFutureCost = Integer.MAX_VALUE;
+			stack.add(matrix);
+			h.put(matrix, "");
+			while(stack.size()!=0) {
+				if(WithOpen) {
+					System.out.println(stack.toString());
+				}
+				Matrix m = stack.pop();
+				if(h.get(m).equals("out")) {
+					h.remove(m);
+				}
+				else {
+					h.remove(m);
+					h.put(m, "out");
+					stack.add(m);
+					String[] steps= {"L","U","R","D"};
+					for (int j = 0; j <steps.length; j++) {
+						Matrix mat=step(m,steps[j]);
+						if(mat!= null) {
+							num++;
+							int matFutureCost=findFutureCost(mat);
+							if(matFutureCost > t) {
+								minFutureCost = Math.min(minFutureCost, matFutureCost);
+								continue;
+							}
+							if(h.contains(mat)){
+								if(h.get(mat).equals("out")) {
+									continue;
+								}
+								else {
+									for (Matrix key : h.keySet()) {
+										if(key.equals(mat) && findFutureCost(key) > matFutureCost) {								
+											stack.remove(key);
+											h.remove(key);
+										}else {
+											continue;
+										}
+									}
+								}
+							}
+							if(mat.victoryOrNot()) {
+								mat.findf(mat).updatef(num, mat.cost, mat.path().substring(1));
+								return;	
+							}
+							stack.add(mat);
+							h.put(mat, "");
+						}
+						}
+					}
+				}
+			t = minFutureCost;
+		}
+	}
+	
+	
+	
 		public static int findFutureCost(Matrix matrix) {//f()
 			return matrix.cost + h(matrix);//cost +future cost
 		}
