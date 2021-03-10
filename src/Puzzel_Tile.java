@@ -134,37 +134,44 @@ public class Puzzel_Tile{
 			t = minFutureCost;//update t
 		}
 	}
-
+	//A*
+	//Combines greedy search and uniform cost search approaches (both based on BFS).
+	//greedy search (Pure Heuristic Search): "calculate" with the Heuristic Search the cost from Given state to goal.
+	//uniform cost search: calculate the cost to given state.
+	//the combination is to calculate the cost to given state and with the Heuristic Search for the given state to goal, 
+	//Combines the calculations to choose wich way you preferred.
+	//Time complexity:O(branch factor*Depth)(best case)
+	//Space complexity: exponential 
 	public static String AStar(Matrix matrix, boolean WithOpen){
 		Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>();
 		Hashtable<Matrix, Matrix> openList = new Hashtable<Matrix, Matrix>();
 		PriorityQueue<Matrix> queue = new PriorityQueue<Matrix>(new Comparator<Matrix>() {public int compare(Matrix m1, Matrix m2) {return findFutureCost(m1)-findFutureCost(m2);}});
-		queue.add(matrix); //this one has to start with the starting q
+		queue.add(matrix); 
 		openList.put(matrix, matrix);
-		int i = 0;//counter for the hash table
+		int i = 0;
 		int num = 1;
 		while(queue.size() != 0) {
-			if(WithOpen) {//if in the input is write with open print the open list
+			if(WithOpen) {
 				System.out.println(openList.values().toString());
 			}
-			Matrix m=queue.poll(); //m=first matrix on the queue
+			Matrix m=queue.poll(); 
 			openList.remove(m);
-			h.put(i++, m);//insert m to the hash table
+			h.put(i++, m);
 			if(m.victoryOrNot()) {
 				m.findf(m).updatef(num, m.cost, m.path().substring(1));
 				return "";
 			}
 			String[] steps= {"L","U","R","D"};
 			for (int j = 0; j <steps.length; j++) {
-				Matrix mat=step(m,steps[j]);//make mat as matrix with the chosen move.
+				Matrix mat=step(m,steps[j]);
 				if(mat!=null) {
 					num++;
 				}
-				if(mat!=null && !queue.contains(mat) && !h.contains(mat)) {//check if mat isn't null, check if null isn't in the queue and check if mat isn't in the hash table
-					queue.add(mat);//if is't still didnt the right matrix add it to open and close list.
+				if(mat!=null && !queue.contains(mat) && !h.contains(mat)) {
+					queue.add(mat);
 					openList.put(mat, mat);
 				}else {
-					if(queue.contains(mat)) {//if it is in the open list check if it is cheaper path
+					if(queue.contains(mat)) {
 						for (Matrix key : openList.keySet()) {
 							if(key.equals(mat) && findFutureCost(mat) > findFutureCost(key)) {								
 								openList.remove(key);
@@ -176,27 +183,15 @@ public class Puzzel_Tile{
 							}
 						}
 					}
-					/*if(mat.victoryOrNot()) {//check if it get the answer(it start with answer and move until it got the matrix in the input)
-						j++;
-						while(j < 4) { //counting the other operators (finishes before creating them)
-							Matrix temp=step(m,steps[j]);
-							if(temp!=null) {
-								num++;
-							}
-							j++;
-						}
-						mat.findf(mat).updatef(num, mat.cost, mat.path().substring(1));
-						return "";
-					}*/
-					/*else {
-						queue.add(mat);//if ist still didnt the right matrix ist add it to queue.
-						openList.put(mat, mat);
-					}*/
 				}
 			}
 		}
 		return "no path";
 	}
+	//BFS:
+	//Passes On an entire floor until reach the solution
+	//Time complexity:O(branch factor^Depth)
+	//Space complexity:O(branch factor^Depth)
 	public static void bfs(Matrix matrix, boolean WithOpen) {
 		Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>(); 
 		Hashtable<Integer, Matrix> openList = new Hashtable<Integer, Matrix>(); 
@@ -204,34 +199,35 @@ public class Puzzel_Tile{
 		queue.add(matrix);//add the first metix to the queue
 		int i=0,o=0,out=0;//counter for the hash table
 		openList.put(o++, matrix);
-		int num=1;//count the number of nodes it create
+		int num=1;//number of nodes created
 		while (queue.size() != 0){ 
-			if(WithOpen) {//if in the input is write with open print the open list
+			if(WithOpen) {
 			System.out.println(openList.toString());
 			}
 			Matrix m=queue.poll();
 			openList.remove(out++);			
-			h.put(i++, m);//insert m to the hash table
-			String[] steps= {"L","U","R","D"};//NUM=21
+			h.put(i++, m);
+			String[] steps= {"L","U","R","D"};////each child option
 			for (int j = 0; j <steps.length; j++) {
 				Matrix mat=step(m,steps[j]);
 				if(mat!=null) {
 					num++;
 				}
-				if(mat!=null && !queue.contains(mat) && !h.contains(mat) && !openList.contains(mat)) {//check if mat isn't null, check if null isn't in the queue and check if mat isn't in the hash table
-					if(mat.victoryOrNot()) {//check if we get the anser(it start with anser and move until it got the matrix in the input)
+				if(mat!=null && !queue.contains(mat) && !h.contains(mat) && !openList.contains(mat)) {
+					if(mat.victoryOrNot()) {
 						mat.findf(mat).updatef(num, mat.cost, mat.path().substring(1));
 						return;
 					}else {
 						openList.put(o++, mat);
-						queue.add(mat);//if ist still didnt the right matrix ist add it to queue.
+						queue.add(mat);
 					}
 				}
 			}
 		}
 	}
-	//sum the future cost
-	public static int h(Matrix matrix) {//Explanation in the file
+	//based on Manhattan distance
+	//estimates the cost between given state to goal state, sums the distance from each block that not in his place to his right place while taking the block color to the calculation. 
+	public static int h(Matrix matrix) {
 		int d = 0;
 		for (int i = 0; i < matrix.matrix.length; i++) {
 			for (int j = 0; j < matrix.matrix[0].length; j++) {
@@ -241,8 +237,6 @@ public class Puzzel_Tile{
 					for (int k = 0; k < matrix.matrix.length; k++) {
 						for (int k2 = 0; k2 < matrix.matrix[0].length; k2++) {
 							if(matrix.matrix[k][k2] == matrix.ans[i][j]) {
-								//sum the rows number (sumx) and column number(sumy) for block that not in the place the blocks that in the place
-								//for the compute of the distance
 								sumx = k+1;
 								sumy = k2+1;
 							}
@@ -252,7 +246,7 @@ public class Puzzel_Tile{
 					if(matrix.colors.get(matrix.matrix[i][j]).equals("Red")) {//if its red every move cost 30 
 						cost=30;
 					}
-					d += (Math.abs(sumx-(i+1)) + Math.abs(sumy-(j+1))) * cost;//add every time the price for 1 block that isnt in place
+					d += (Math.abs(sumx-(i+1)) + Math.abs(sumy-(j+1))) * cost;
 				}
 			}
 		}
@@ -327,7 +321,7 @@ public static class Matrix{
 		 this.ans=new int[matrix.length][matrix[0].length];
 		 cost=0;
 		 int num=1;
-		 for (int i = 0; i < matrix.length; i++) {//build the matrix, tha answer matrix and copy the hash table of the colors
+		 for (int i = 0; i < matrix.length; i++) {//build the matrix, the answer matrix and copy the colors hash table.
 			for (int j = 0; j < matrix[0].length; j++) {
 				this.matrix[i][j]=matrix[i][j];
 				this.ans[i][j]=num;
@@ -367,7 +361,7 @@ public static class Matrix{
 		 }
 		 return true;
 	 }
-	 public void move(int i,int j,String side){//move the empty block to this position, update the empty block position ,the cost and keep this move for the path
+	 public void move(int i,int j,String side){//move the empty block to the new position, update the empty block position ,the cost and keep this move for the path
 		 if(this.colors.get(this.matrix[i][j])==("Red")) {
 			 this.cost+=29;
 		}
