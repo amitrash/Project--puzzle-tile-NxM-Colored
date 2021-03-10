@@ -16,15 +16,15 @@ import java.util.Stack;
 
 import javax.print.attribute.IntegerSyntax;
 public class Puzzel_Tile{
-	public static int num2=1;
 	
 	//based on Manhattan distance
-	//estimates the cost between given state to goal state, sums the distance from each block that not in his place to his right place while taking the block color to the calculation. 
+	//estimates the cost between given state to goal state.
+	//sums the distance from each block that not in his place to his right place while taking the block color to the calculation. 
 	public static int h(Matrix matrix) {
 		int d = 0;
 		for (int i = 0; i < matrix.matrix.length; i++) {
 			for (int j = 0; j < matrix.matrix[0].length; j++) {
-				if(matrix.matrix[i][j] != matrix.ans[i][j] && matrix.matrix[i][j] != -1 ) {//find block that isnt in place
+				if(matrix.matrix[i][j] != matrix.ans[i][j] && matrix.matrix[i][j] != -1 ) {
 					int sumx = 0;
 					int sumy = 0;
 					for (int k = 0; k < matrix.matrix.length; k++) {
@@ -36,7 +36,7 @@ public class Puzzel_Tile{
 						}
 					}
 					int cost =1;
-					if(matrix.colors.get(matrix.matrix[i][j]).equals("Red")) {//if its red every move cost 30 
+					if(matrix.colors.get(matrix.matrix[i][j]).equals("Red")) {
 						cost=30;
 					}
 					d += (Math.abs(sumx-(i+1)) + Math.abs(sumy-(j+1))) * cost;
@@ -54,10 +54,10 @@ public class Puzzel_Tile{
 		Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>(); 
 		Hashtable<Integer, Matrix> openList = new Hashtable<Integer, Matrix>(); 
 		Queue<Matrix> queue = new LinkedList<Matrix>(); 
-		queue.add(matrix);//add the first metix to the queue
-		int i=0,o=0,out=0;//counter for the hash table
+		queue.add(matrix);
+		int i=0,o=0,out=0;
 		openList.put(o++, matrix);
-		int num=1;//number of nodes created
+		int num=1;
 		while (queue.size() != 0){ 
 			if(WithOpen) {
 			System.out.println(openList.toString());
@@ -65,7 +65,7 @@ public class Puzzel_Tile{
 			Matrix m=queue.poll();
 			openList.remove(out++);			
 			h.put(i++, m);
-			String[] steps= {"L","U","R","D"};////each child option
+			String[] steps= {"L","U","R","D"};
 			for (int j = 0; j <steps.length; j++) {
 				Matrix mat=step(m,steps[j]);
 				if(mat!=null) {
@@ -82,6 +82,70 @@ public class Puzzel_Tile{
 				}
 			}
 		}
+	}
+
+	//Limited_DFS
+	//DFS(depth-first search): generates next a child of the deepest node that has not been completely expanded yet until the solution is found.
+	//based on DFS with limit depth.
+	//Time complexity:O(branch factor^Limit)
+	//Space complexity: O(branch factor*Limit) 
+	public static String Limited_DFS(Matrix matrix, int limit, Hashtable<Integer, Matrix> h, boolean WithOpen, Hashtable<Matrix, Matrix> openList) {
+		if(matrix.victoryOrNot()) {	
+			matrix.findf(matrix).updatef(num2, matrix.cost, matrix.path().substring(1));
+			return matrix.path().substring(1);
+		}else if(limit == 0) {
+			openList.put(matrix, matrix);
+			return "cutoff";
+		}else {
+			h.put(limit, matrix);
+			boolean isCutoff = false;
+			String[] steps= {"L","U","R","D"};
+			for (int j = 0; j <steps.length; j++) {
+				Matrix mat=step(matrix,steps[j]);
+					if(mat!=null && !h.contains(mat)) {
+						num2++;//count nodes
+						String result = Limited_DFS(mat, limit - 1, h, WithOpen,openList);
+						if(result == "cutoff") {
+							isCutoff = true;
+						}else if(result != "fail") {
+							return result;
+						}
+					}
+			}
+			h.remove(limit);
+			if(isCutoff == true) {
+				return "cutoff";
+			}else {
+				return "fail";
+			}
+		}
+	}
+	
+	//DFID
+	//Calls Limited_DFS for each depth until find the goal depth.
+	public static void DFID(Matrix matrix, boolean WithOpen) {
+		Hashtable<Matrix, Matrix> openList = new Hashtable<Matrix, Matrix>();
+		openList.put(matrix, matrix);
+		if(WithOpen) {
+			System.out.println(openList.values().toString());
+		}
+		int depth = 1;
+		while(depth!=Integer.MAX_VALUE) {
+			Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>();
+			openList = new Hashtable<Matrix, Matrix>();
+			String result = Limited_DFS(matrix, depth, h, WithOpen,openList);
+			if(WithOpen) {
+				System.out.println(openList.values().toString());
+			}
+			if(result != null && result != "cutoff" && result != "fail") {
+				return ;
+			}
+			else if(result == "fail") {
+				return;
+			}
+			depth++;
+		}
+		return;
 	}
 	
 	//A*
@@ -133,73 +197,11 @@ public class Puzzel_Tile{
 							}
 						}
 					}
+				
 				}
 			}
 		}
 		return "no path";
-	}
-	
-	//Limited_DFS
-	//DFS(depth-first search): generates next a child of the deepest node that has not been completely expanded yet until the solution is found.
-	//based on DFS with limit depth.
-	//Time complexity:O(branch factor^Limit)
-	//Space complexity: O(branch factor*Limit) 
-	public static String Limited_DFS(Matrix matrix, int limit, Hashtable<Integer, Matrix> h, boolean WithOpen, Hashtable<Matrix, Matrix> openList) {
-		if(matrix.victoryOrNot()) {
-			matrix.findf(matrix).updatef(num2, matrix.cost, matrix.path().substring(1));
-			return matrix.path().substring(1);
-		}else if(limit == 0) {
-			openList.put(matrix, matrix);
-			return "cutoff";
-		}else {
-			h.put(limit, matrix);
-			boolean isCutoff = false;
-			String[] steps= {"L","U","R","D"};
-			for (int j = 0; j <steps.length; j++) {
-				Matrix mat=step(matrix,steps[j]);
-					if(mat!=null && !h.contains(mat)) {
-						num2++;//count nodes
-						String result = Limited_DFS(mat, limit - 1, h, WithOpen,openList);//call mith limit -1
-						if(result == "cutoff") {
-							isCutoff = true;
-						}else if(result != "fail") {
-							return result;
-						}
-					}
-			}
-			h.remove(limit);
-			if(isCutoff == true) {
-				return "cutoff";
-			}else {
-				return "fail";
-			}
-		}
-		} 
-	//DFID
-	//Calls Limited_DFS for each depth until find the goal depth.
-	public static void DFID(Matrix matrix, boolean WithOpen) {
-		Hashtable<Matrix, Matrix> openList = new Hashtable<Matrix, Matrix>();
-		openList.put(matrix, matrix);
-		if(WithOpen) {
-			System.out.println(openList.values().toString());
-		}
-		int depth = 1;
-		while(depth!=Integer.MAX_VALUE) {
-			Hashtable<Integer, Matrix> h = new Hashtable<Integer, Matrix>();
-			openList = new Hashtable<Matrix, Matrix>();
-			String result = Limited_DFS(matrix, depth, h, WithOpen,openList);
-			if(WithOpen) {
-				System.out.println(openList.values().toString());
-			}
-			if(result != null && result != "cutoff" && result != "fail") {
-				return ;
-			}
-			else if(result == "fail") {
-				return;
-			}
-			depth++;
-		}
-		return;
 	}
 	
 	//IDA*
@@ -209,7 +211,7 @@ public class Puzzel_Tile{
 	public static void IDA(Matrix matrix, boolean WithOpen) {
 		Hashtable<Matrix, String> h = new Hashtable<Matrix, String>();
 		Stack<Matrix> stack = new Stack<Matrix>();
-		int t = h(matrix);//
+		int t = h(matrix);
 		while(t != Integer.MAX_VALUE) {
 			int num = 1;
 			int minFutureCost = Integer.MAX_VALUE;
@@ -242,6 +244,7 @@ public class Puzzel_Tile{
 									continue;
 								}
 								else {
+
 									for (Matrix key : h.keySet()) {
 										if(key.equals(mat) && findFutureCost(key) > matFutureCost) {								
 											stack.remove(key);
@@ -265,8 +268,6 @@ public class Puzzel_Tile{
 			t = minFutureCost;
 		}
 	}
-	
-	
 	
 		public static int findFutureCost(Matrix matrix) {//f()
 			return matrix.cost + h(matrix);//cost +future cost
@@ -337,7 +338,7 @@ public static class Matrix{
 		 this.ans=new int[matrix.length][matrix[0].length];
 		 cost=0;
 		 int num=1;
-		 for (int i = 0; i < matrix.length; i++) {//build the matrix, the answer matrix and copy the colors hash table.
+		 for (int i = 0; i < matrix.length; i++) {//build the matrix, tha answer matrix and copy the hash table of the colors
 			for (int j = 0; j < matrix[0].length; j++) {
 				this.matrix[i][j]=matrix[i][j];
 				this.ans[i][j]=num;
@@ -377,7 +378,7 @@ public static class Matrix{
 		 }
 		 return true;
 	 }
-	 public void move(int i,int j,String side){//move the empty block to the new position, update the empty block position ,the cost and keep this move for the path
+	 public void move(int i,int j,String side){//move the empty block to this position, update the empty block position ,the cost and keep this move for the path
 		 if(this.colors.get(this.matrix[i][j])==("Red")) {
 			 this.cost+=29;
 		}
@@ -559,7 +560,6 @@ public static class tilePuzzel{
 	}
 }
 	public static void main(String[] args) throws IOException {
-		//C:\Users\Amit\eclipse-workspace\Project- puzzle tile-NxM-Colored\inputoutput
 		 tilePuzzel g = new tilePuzzel("inputoutput//input3.txt");
 		//tilePuzzel g = new tilePuzzel("input.txt");
 	}
